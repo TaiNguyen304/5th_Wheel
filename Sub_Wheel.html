@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wheel</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: sans-serif;
+            font-weight: bold !important;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: purple;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .wheel-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            width: 600px;
+            height: 600px;
+            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+            transform-origin: center top;
+        }
+
+        .wheel-area.zoomed {
+            transform: scale(2) translateY(50px);
+        }
+
+        .wheel-container {
+            width: 500px;
+            height: 500px;
+            position: relative;
+        }
+
+        #wheelGraphic {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 5px solid white;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            display: block;
+            background-image: url('./Nón.png');
+            position: relative;
+        }
+
+        #specialValuePopup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: purple;
+            color: white;
+            padding: 12px 24px;
+            font-size: 26px;
+            border-radius: 8px;
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+            z-index: 999;
+            display: none;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .items-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .placed-item {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform-origin: center center;
+            display: none;
+        }
+
+        .placed-item img {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            object-fit: fill;
+            filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.5));
+        }
+
+        .placed-item.is-card img {
+            top: 15px;
+            width: 10.5%;
+            max-height: 55px;
+            object-fit: contain;
+        }
+
+        .placed-item.is-wedge img {
+            top: 13px;
+            width: 13.5%;
+            height: 28%;
+            clip-path: polygon(0% 0%, 100% 0%, 78.25% 100%, 21.75% 100%);
+        }
+
+        .dots-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .dot-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform-origin: center center;
+        }
+
+        .dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            top: 3.5px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+        }
+
+        .pointer-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform-origin: center center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .wrapper-red {
+            transform: rotate(-30deg);
+        }
+
+        .wrapper-yellow {
+            transform: rotate(0deg);
+        }
+
+        .wrapper-blue {
+            transform: rotate(30deg);
+        }
+
+        .pointer-body {
+            position: absolute;
+            top: -57.5px;
+            left: 50%;
+            transform: translateX(-50%);
+            filter: drop-shadow(0px 3px 5px rgba(0, 0, 0, 0.4));
+        }
+
+        .pointer-body svg path {
+            transition: fill 0.2s;
+        }
+
+        #pointer-red {
+            --p-color: transparent;
+        }
+
+        #pointer-yellow {
+            --p-color: transparent;
+        }
+
+        #pointer-blue {
+            --p-color: transparent;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="wheel-area" id="wheelArea">
+        <div class="wheel-container" id="wheelContainer">
+            <div id="wheelGraphic">
+                <div class="items-ring" id="itemsRing"></div>
+                <div class="dots-ring" id="dotsRing"></div>
+            </div>
+            <div id="specialValuePopup">0 điểm</div>
+            <div class="pointer-wrapper wrapper-red">
+                <div class="pointer-body" id="pointer-red">
+                    <svg width="46" height="60" viewBox="0 0 46 60">
+                        <path d="M23,60 C9,38 0,28 0,18 A23,18 0 0,1 46,18 C46,28 37,38 23,60 Z" fill="var(--p-color)"
+                            stroke="white" stroke-width="2" stroke-linejoin="round" />
+                    </svg>
+                </div>
+            </div>
+            <div class="pointer-wrapper wrapper-yellow">
+                <div class="pointer-body" id="pointer-yellow">
+                    <svg width="46" height="60" viewBox="0 0 46 60">
+                        <path d="M23,60 C9,38 0,28 0,18 A23,18 0 0,1 46,18 C46,28 37,38 23,60 Z" fill="var(--p-color)"
+                            stroke="white" stroke-width="2" stroke-linejoin="round" />
+                    </svg>
+                </div>
+            </div>
+            <div class="pointer-wrapper wrapper-blue">
+                <div class="pointer-body" id="pointer-blue">
+                    <svg width="46" height="60" viewBox="0 0 46 60">
+                        <path d="M23,60 C9,38 0,28 0,18 A23,18 0 0,1 46,18 C46,28 37,38 23,60 Z" fill="var(--p-color)"
+                            stroke="white" stroke-width="2" stroke-linejoin="round" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var supabaseUrl = 'https://vjwwbzjzcbtkksehwfll.supabase.co';
+        var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqd3diemp6Y2J0a2tzZWh3ZmxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NDIyOTYsImV4cCI6MjA5NTUxODI5Nn0.Zcn4hvlLtRirM-SPGrFvu3ivu8RYF9WngvbxCMCGfh4';
+        var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let currentRotation = 0;
+        let isSpecialMode = false;
+        let specialWedges = [];
+
+        let spinAnimationId = null;
+        let spinStartRotation = 0;
+        let spinTargetRotation = 0;
+        let spinStartTime = 0;
+        let spinDuration = 0;
+
+        const wheelGraphic = document.getElementById('wheelGraphic');
+        const wheelArea = document.getElementById('wheelArea');
+        const itemsRing = document.getElementById('itemsRing');
+        const specialValuePopup = document.getElementById('specialValuePopup');
+
+        const itemsPlacementConfig = {};
+        const coordsAddTurn = [22.5, 52.5, 112.5, 142.5, 187.5, 217.5, 262.5];
+        const coordsReward = [37.5, 67.5, 172.5, 247.5, 307.5];
+        const coordsLostPoints = [82.5, 232.5, 292.5, 352.5];
+        const coordsLostTurn = [82.5, 232.5, 292.5, 352.5];
+        const wedgesWithAddTurn = ["Ô 600", "Ô 700", "Ô 800", "Ô 900", "Ô 1.000", "Ô 2.000"];
+
+        wedgesWithAddTurn.forEach(wedge => {
+            coordsAddTurn.forEach(ang => {
+                itemsPlacementConfig[`${wedge} (${ang}°)`] = { angle: ang, img: wedge.replace(/\./g, '') + ".png" };
+            });
+        });
+
+        coordsAddTurn.forEach(ang => {
+            itemsPlacementConfig[`Ô Thêm Lượt (${ang}°)`] = { angle: ang, img: "Ô Thêm Lượt.png" };
+        });
+
+        itemsPlacementConfig["Ô Bí Mật 1 (97.5°)"] = { angle: 97.5, img: "Ô Bí Mật 1.png" };
+        itemsPlacementConfig["Ô Bí Mật 2 (277.5°)"] = { angle: 277.5, img: "Ô Bí Mật 2.png" };
+
+        coordsReward.forEach(ang => {
+            itemsPlacementConfig[`Thẻ Phần Thưởng (${ang}°)`] = { angle: ang, img: "Thẻ Phần Thưởng.png" };
+        });
+
+        coordsLostPoints.forEach(ang => {
+            itemsPlacementConfig[`Ô Mất Điểm (${ang}°)`] = { angle: ang, img: "Ô Mất Điểm.png" };
+        });
+
+        coordsLostTurn.forEach(ang => {
+            itemsPlacementConfig[`Ô Mất Lượt (${ang}°)`] = { angle: ang, img: "Ô Mất Lượt.png" };
+        });
+
+        itemsPlacementConfig["Thẻ Cơ Hội (322.5°)"] = { angle: 322.5, img: "Thẻ Cơ Hội.png" };
+        itemsPlacementConfig["Thẻ Kháng Mất Điểm (157.5°)"] = { angle: 157.5, img: "Thẻ Kháng Mất Điểm.png" };
+
+        Object.keys(itemsPlacementConfig).forEach(itemName => {
+            const config = itemsPlacementConfig[itemName];
+            const itemWrapper = document.createElement('div');
+            itemWrapper.className = 'placed-item';
+            itemWrapper.classList.add(itemName.startsWith("Thẻ") ? 'is-card' : 'is-wedge');
+            itemWrapper.id = 'render-item-' + itemName.replace(/[^a-zA-Z0-9]/g, '_');
+            itemWrapper.style.transform = `rotate(${config.angle}deg)`;
+
+            const imgEl = document.createElement('img');
+            imgEl.src = './' + config.img;
+            imgEl.alt = itemName;
+            itemWrapper.appendChild(imgEl);
+            itemsRing.appendChild(itemWrapper);
+        });
+
+        const dotsRing = document.getElementById('dotsRing');
+        for (let i = 0; i < 72; i++) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'dot-wrapper';
+            wrapper.style.transform = `rotate(${i * 5}deg)`;
+            const dot = document.createElement('div');
+            dot.className = 'dot';
+            wrapper.appendChild(dot);
+            dotsRing.appendChild(wrapper);
+        }
+
+        function easeOutCubic(t) {
+            return 1 - Math.pow(1 - t, 3);
+        }
+
+        function updateWheelAnimation() {
+            const now = Date.now();
+            const elapsed = now - spinStartTime;
+            const progress = Math.min(elapsed / spinDuration, 1);
+
+            const easeProgress = easeOutCubic(progress);
+            currentRotation = spinStartRotation + (spinTargetRotation - spinStartRotation) * easeProgress;
+
+            wheelGraphic.style.transform = `rotate(${currentRotation}deg)`;
+
+            if (progress < 1) {
+                spinAnimationId = requestAnimationFrame(updateWheelAnimation);
+            } else {
+                cancelAnimationFrame(spinAnimationId);
+                spinAnimationId = null;
+                saveWheelState();
+            }
+        }
+
+        function saveWheelState() {
+            const state = {
+                currentRotation, isSpecialMode, specialWedges,
+                wheelDisplay: wheelGraphic.style.display,
+                wheelBg: wheelGraphic.style.backgroundImage,
+                zoomed: wheelArea.classList.contains('zoomed'),
+                popupDisplay: specialValuePopup.style.display,
+                popupText: specialValuePopup.innerText,
+                itemsState: {}
+            };
+            Object.keys(itemsPlacementConfig).forEach(itemName => {
+                const el = document.getElementById('render-item-' + itemName.replace(/[^a-zA-Z0-9]/g, '_'));
+                if (el) state.itemsState[itemName] = el.style.display;
+            });
+            localStorage.setItem('wheel_sub_state', JSON.stringify(state));
+        }
+
+        function loadWheelState() {
+            const saved = localStorage.getItem('wheel_sub_state');
+            if (!saved) return;
+            const state = JSON.parse(saved);
+            currentRotation = state.currentRotation;
+            isSpecialMode = state.isSpecialMode;
+            specialWedges = state.specialWedges;
+            wheelGraphic.style.transform = `rotate(${currentRotation}deg)`;
+            wheelGraphic.style.display = state.wheelDisplay || 'block';
+            wheelGraphic.style.backgroundImage = state.wheelBg || "url('./Nón.png')";
+            if (state.zoomed) wheelArea.classList.add('zoomed'); else wheelArea.classList.remove('zoomed');
+            specialValuePopup.style.display = state.popupDisplay || 'none';
+            specialValuePopup.innerText = state.popupText || '0 điểm';
+
+            if (state.itemsState) {
+                Object.keys(state.itemsState).forEach(itemName => {
+                    const el = document.getElementById('render-item-' + itemName.replace(/[^a-zA-Z0-9]/g, '_'));
+                    if (el) el.style.display = state.itemsState[itemName];
+                });
+            }
+        }
+
+        function executeSpin(duration, targetRotation, startTime) {
+            if (spinAnimationId) cancelAnimationFrame(spinAnimationId);
+            specialValuePopup.style.display = 'none';
+
+            spinStartRotation = currentRotation;
+            spinTargetRotation = targetRotation;
+            spinStartTime = startTime;
+            spinDuration = duration * 1000;
+
+            updateWheelAnimation();
+        }
+
+        function executeShowValue() {
+            let normalize = (currentRotation % 360 + 360) % 360;
+            let targetWheelAngle = (0 - normalize + 360) % 360;
+            let wedgeIdx = Math.floor(targetWheelAngle / 15) % 24;
+            let val = specialWedges[wedgeIdx] || 0;
+            specialValuePopup.innerText = val.toLocaleString('vi-VN') + " đ";
+            specialValuePopup.style.display = 'block';
+            saveWheelState();
+        }
+
+        function executeHideValue() {
+            specialValuePopup.style.display = 'none';
+            saveWheelState();
+        }
+
+        function executeFindHighest(startTime, idCounter) {
+            let initialDeg = currentRotation;
+            let bestDeg = initialDeg;
+            let maxVal = -1;
+            for (let d = 0; d < 360; d += 0.5) {
+                let testRot = initialDeg + d;
+                let norm = (testRot % 360 + 360) % 360;
+                let targetWheelAngle = (0 - norm + 360) % 360;
+                let wedgeIdx = Math.floor(targetWheelAngle / 15) % 24;
+                let val = specialWedges[wedgeIdx] || 0;
+                if (val > maxVal) { maxVal = val; bestDeg = testRot; }
+            }
+            if (spinAnimationId) cancelAnimationFrame(spinAnimationId);
+            spinStartRotation = currentRotation;
+            spinTargetRotation = bestDeg;
+            spinStartTime = Date.now();
+            spinDuration = 1500;
+
+            updateWheelAnimation();
+            setTimeout(() => { executeShowValue(); }, 1600);
+        }
+
+        function executeResetRotation() {
+            if (spinAnimationId) cancelAnimationFrame(spinAnimationId);
+            currentRotation = 0;
+            wheelGraphic.style.transform = 'rotate(0deg)';
+            saveWheelState();
+        }
+
+        const channel = supabase.channel('wheel_room').on('broadcast', { event: 'spin' }, function (payload) {
+            executeSpin(payload.payload.duration, payload.payload.targetRotation, payload.payload.startTime);
+        }).on('broadcast', { event: 'toggle_wheel' }, function (payload) {
+            const data = payload.payload;
+            if (data.type === 'normal') {
+                wheelGraphic.style.backgroundImage = "url('./Nón.png')";
+                isSpecialMode = false;
+            } else {
+                wheelGraphic.style.backgroundImage = "url('./Nón Đặc Biệt.png')";
+                isSpecialMode = true;
+            }
+            saveWheelState();
+        }).on('broadcast', { event: 'pointer_status' }, function (payload) {
+            const data = payload.payload;
+            const colorMap = {
+                red: { on: '#ff0000', off: 'transparent' },
+                yellow: { on: '#ffff00', off: 'transparent' },
+                blue: { on: '#0000ff', off: 'transparent' }
+            };
+            const el = document.getElementById('pointer-' + data.color);
+            if (el) el.style.setProperty('--p-color', colorMap[data.color][data.status]);
+            saveWheelState();
+        }).on('broadcast', { event: 'zoom_pointer' }, function (payload) {
+            if (payload.payload.dir === 'in') wheelArea.classList.add('zoomed');
+            else wheelArea.classList.remove('zoomed');
+            saveWheelState();
+        }).on('broadcast', { event: 'toggle_item' }, function (payload) {
+            const data = payload.payload;
+            const el = document.getElementById('render-item-' + data.name.replace(/[^a-zA-Z0-9]/g, '_'));
+            if (el) el.style.display = data.show ? 'block' : 'none';
+            saveWheelState();
+        }).on('broadcast', { event: 'shuffle_special' }, function (payload) {
+            specialWedges = payload.payload.wedges;
+            specialValuePopup.style.display = 'none';
+            saveWheelState();
+        }).on('broadcast', { event: 'show_value' }, function () {
+            executeShowValue();
+        }).on('broadcast', { event: 'hide_value' }, function () {
+            executeHideValue();
+        }).on('broadcast', { event: 'find_highest' }, function (payload) {
+            executeFindHighest(payload.payload.startTime, payload.payload.highestSearchCounter);
+        }).on('broadcast', { event: 'reset_rotation' }, function () {
+            executeResetRotation();
+        }).subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                channel.send({ event: 'request_sync', type: 'broadcast', payload: {} });
+            }
+        });
+
+        channel.on('broadcast', { event: 'request_sync' }, function () { saveWheelState(); });
+        window.addEventListener('load', loadWheelState);
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && spinAnimationId) {
+                updateWheelAnimation();
+            }
+        });
+
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.keyCode === 123) e.preventDefault();
+            if ((e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || (e.ctrlKey && e.keyCode === 85)) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+
+</html>

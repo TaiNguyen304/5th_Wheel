@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controller</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: sans-serif;
+            font-weight: bold !important;
+        }
+
+        body {
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+
+        .section {
+            background: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .grid-pointer {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .grid-6x4 {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: purple;
+            color: white;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: orange !important;
+            color: #fff !important;
+        }
+
+        button.btn-off {
+            background: #ff00ff;
+        }
+
+        button.btn-off:hover {
+            background: orange !important;
+            color: #fff !important;
+        }
+
+        input[type="number"],
+        input[type="text"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 150px;
+        }
+
+        .item-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 6px;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 110px;
+        }
+
+        .item-card-title {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .item-card-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        select.coord-select {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-weight: bold;
+            outline: none;
+            cursor: pointer;
+            background-color: #fff;
+        }
+
+        .pointer-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+
+        .wedge-cell {
+            padding: 12px;
+            text-align: center;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        .player-control-block {
+            border: 3px solid #ccc;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+
+        .block-red {
+            border-color: red;
+        }
+
+        .block-yellow {
+            border-color: yellow;
+        }
+
+        .block-blue {
+            border-color: blue;
+        }
+
+        .score-display-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .score-info-box {
+            padding: 10px 20px;
+            font-size: 18px;
+            border-radius: 4px;
+            color: white;
+            min-width: 160px;
+            text-align: center;
+        }
+
+        .btn-card-toggle {
+            padding: 6px 10px;
+            font-size: 11px;
+            background: #333;
+            border: 1px solid #fff;
+        }
+
+        .btn-card-toggle.active-status {
+            background: #008000 !important;
+            color: #fff !important;
+        }
+
+        /* Responsive cho grid điều khiển ô */
+        @media (max-width: 1024px) {
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .grid-4 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="section">
+        <h2>Điều khiển Nón</h2>
+        <div class="flex-row">
+            <button onclick="toggleWheel('normal', true)">Hiện Nón</button>
+            <button class="btn-off" onclick="toggleWheel('normal', false)">Ẩn Nón</button>
+            <button onclick="toggleWheel('special', true)">Hiện Nón Đặc Biệt</button>
+            <button class="btn-off" onclick="toggleWheel('special', false)">Ẩn Nón Đặc Biệt</button>
+            <button onclick="resetWheelRotation()" style="background-color: #800080; color: white;">Reset Góc
+                Quay</button>
+        </div>
+        <div class="flex-row" style="margin-top: 15px;">
+            <label>Thời gian quay (5-20s):</label>
+            <input type="number" id="spinTime" min="5" max="20" placeholder="VD: 10">
+            <button onclick="spinWheel()">Quay Nón</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Điều khiển Nón Đặc Biệt</h2>
+        <div class="flex-row">
+            <button onclick="shuffleSpecialWheel()" style="background: blue; color: white;">Xáo giá trị</button>
+            <button onclick="showValue()" style="background: green; color: white;">Hiện giá trị ô quay vào</button>
+            <button onclick="findHighestWedge()" style="background: red; color: white;">Tìm ô cao nhất</button>
+            <button onclick="hideValue()" style="background: yellow; color: #000;">Ẩn giá trị</button>
+        </div>
+
+        <h3 style="margin-top: 20px; margin-bottom: 5px;">Sơ đồ 24 ô Nón Đặc Biệt (Cơ cấu mới)</h3>
+        <div class="grid-6x4" id="specialGridContainer"></div>
+    </div>
+
+    <div class="section">
+        <h2>Điều khiển Đèn Kim</h2>
+        <div class="grid-pointer">
+            <div class="pointer-control" style="background-color: red; color: #fff;">
+                <span>Kim Đỏ:</span>
+                <button onclick="setPointer('red', 'on')" style="background: green;">Mở</button>
+                <button class="btn-off" onclick="setPointer('red', 'off')">Đóng</button>
+            </div>
+            <div class="pointer-control" style="background-color: yellow; color: #000;">
+                <span>Kim Vàng:</span>
+                <button onclick="setPointer('yellow', 'on')" style="background: green;">Mở</button>
+                <button class="btn-off" onclick="setPointer('yellow', 'off')">Đóng</button>
+            </div>
+            <div class="pointer-control" style="background-color: blue; color: #fff;">
+                <span>Kim Xanh:</span>
+                <button onclick="setPointer('blue', 'on')" style="background: green;">Mở</button>
+                <button class="btn-off" onclick="setPointer('blue', 'off')">Đóng</button>
+            </div>
+            <div class="pointer-control" style="background-color: purple; color: #fff;">
+                <span>Zoom Kim:</span>
+                <button onclick="zoomPointer('in')" style="background: green; color: white;">Ease in</button>
+                <button onclick="zoomPointer('out')" style="background: #ff00ff; color: white;">Ease out</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Hiển thị Thẻ & Ô</h2>
+        <div class="grid-4" id="itemsContainer"></div>
+    </div>
+
+    <div class="section">
+        <h2>Bảng Điều Khiển Người Chơi</h2>
+
+        <div class="player-control-block block-red">
+            <h3 style="color: red; margin-top: 0;">NC ĐỎ</h3>
+            <div class="score-display-row">
+                <div class="score-info-box" id="ctrl-red-round-box" style="background: red;">Điểm Vòng: 0</div>
+                <div class="score-info-box" id="ctrl-red-total-box" style="background: red;">Điểm Tổng: 0</div>
+            </div>
+            <div class="flex-row" style="margin-bottom: 12px;">
+                <input type="text" id="score-input-red" placeholder="Nhập số điểm" oninput="formatNumberInput(this)">
+                <button onclick="modifyScore('red', 'total', 'add')" style="background: blue; color: white;">Tổng
+                    +</button>
+                <button onclick="modifyScore('red', 'round', 'add')" style="background: yellow; color: black;">Vòng
+                    +</button>
+                <button onclick="modifyScore('red', 'round', 'sub')" style="background: red; color: white;">Vòng
+                    -</button>
+            </div>
+            <div class="flex-row" id="cards-row-red"></div>
+        </div>
+
+        <div class="player-control-block block-yellow">
+            <h3 style="color: #ff0; margin-top: 0;">NC VÀNG</h3>
+            <div class="score-display-row">
+                <div class="score-info-box" id="ctrl-yellow-round-box" style="background: #ff0;color: black;">Điểm Vòng:
+                    0</div>
+                <div class="score-info-box" id="ctrl-yellow-total-box" style="background: #ff0;color: black;">Điểm Tổng:
+                    0</div>
+            </div>
+            <div class="flex-row" style="margin-bottom: 12px;">
+                <input type="text" id="score-input-yellow" placeholder="Nhập số điểm" oninput="formatNumberInput(this)">
+                <button onclick="modifyScore('yellow', 'total', 'add')" style="background: blue; color: white;">Tổng
+                    +</button>
+                <button onclick="modifyScore('yellow', 'round', 'add')" style="background: yellow; color: black;">Vòng
+                    +</button>
+                <button onclick="modifyScore('yellow', 'round', 'sub')" style="background: red; color: white;">Vòng
+                    -</button>
+            </div>
+            <div class="flex-row" id="cards-row-yellow"></div>
+        </div>
+
+        <div class="player-control-block block-blue">
+            <h3 style="color: blue; margin-top: 0;">NC XANH</h3>
+            <div class="score-display-row">
+                <div class="score-info-box" id="ctrl-blue-round-box" style="background: blue;">Điểm Vòng: 0</div>
+                <div class="score-info-box" id="ctrl-blue-total-box" style="background: blue;">Điểm Tổng: 0</div>
+            </div>
+            <div class="flex-row" style="margin-bottom: 12px;">
+                <input type="text" id="score-input-blue" placeholder="Nhập số điểm" oninput="formatNumberInput(this)">
+                <button onclick="modifyScore('blue', 'total', 'add')" style="background: blue; color: white;">Tổng
+                    +</button>
+                <button onclick="modifyScore('blue', 'round', 'add')" style="background: yellow; color: black;">Vòng
+                    +</button>
+                <button onclick="modifyScore('blue', 'round', 'sub')" style="background: red; color: white;">Vòng
+                    -</button>
+            </div>
+            <div class="flex-row" id="cards-row-blue"></div>
+        </div>
+
+        <div class="flex-row"
+            style="margin-top: 25px; border-top: 2px dashed #ccc; padding-top: 15px; justify-content: center;">
+            <button onclick="resetAllScores('round')"
+                style="background: purple; font-size: 16px; padding: 12px 25px;">Reset điểm vòng</button>
+            <button onclick="resetAllScores('total')"
+                style="background: #ff00ff; font-size: 16px; padding: 12px 25px;">Reset điểm tổng</button>
+        </div>
+    </div>
+
+    <script>
+        var supabaseUrl = 'https://vjwwbzjzcbtkksehwfll.supabase.co';
+        var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqd3diemp6Y2J0a2tzZWh3ZmxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NDIyOTYsImV4cCI6MjA5NTUxODI5Nn0.Zcn4hvlLtRirM-SPGrFvu3ivu8RYF9WngvbxCMCGfh4';
+        var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        const channel = supabase.channel('wheel_room');
+
+        const playerCardLabels = ["Thẻ Thêm Lượt", "Thẻ Cơ Hội", "Thẻ Kháng Mất Điểm", "Ô Bí Mật"];
+        const playerColors = ['red', 'yellow', 'blue'];
+        let globalScores = {
+            red: { round: 0, total: 0, cards: [false, false, false, false] },
+            yellow: { round: 0, total: 0, cards: [false, false, false, false] },
+            blue: { round: 0, total: 0, cards: [false, false, false, false] }
+        };
+
+        let currentRotation = 0;
+        let specialWedges = [];
+
+        // Định nghĩa bộ dữ liệu thô gồm Tên và mảng Tọa độ đi kèm để tiện gom nhóm
+        const coordsAddTurn = [22.5, 52.5, 112.5, 142.5, 187.5, 217.5, 262.5];
+        const coordsReward = [37.5, 67.5, 172.5, 247.5, 307.5];
+        const coordsLostPoints = [82.5, 232.5, 292.5, 352.5];
+        const coordsLostTurn = [82.5, 232.5, 292.5, 352.5];
+        const wedgesWithAddTurn = ["Ô 600", "Ô 700", "Ô 800", "Ô 900", "Ô 1.000", "Ô 2.000"];
+
+        // Cấu trúc dữ liệu mới sau khi gom nhóm
+        const groupedItems = [];
+
+        wedgesWithAddTurn.forEach(wedge => {
+            groupedItems.push({ name: wedge, coords: coordsAddTurn });
+        });
+
+        groupedItems.push({ name: "Ô Thêm Lượt", coords: coordsAddTurn });
+        groupedItems.push({ name: "Ô Bí Mật 1", coords: [97.5] });
+        groupedItems.push({ name: "Ô Bí Mật 2", coords: [277.5] });
+
+        groupedItems.push({ name: "Thẻ Phần Thưởng", coords: coordsReward });
+        groupedItems.push({ name: "Ô Mất Điểm", coords: coordsLostPoints });
+        groupedItems.push({ name: "Ô Mất Lượt", coords: coordsLostTurn });
+
+        groupedItems.push({ name: "Thẻ Cơ Hội", coords: [322.5] });
+        groupedItems.push({ name: "Thẻ Kháng Mất Điểm", coords: [157.5] });
+
+        channel.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                renderControls();
+                initPlayerCards();
+            }
+        });
+
+        function sendEvent(event, payload = {}) {
+            channel.send({ type: 'broadcast', event: event, payload: payload });
+        }
+
+        function toggleWheel(type, show) {
+            sendEvent('toggle_wheel', { type: type, show: show });
+        }
+
+        function spinWheel() {
+            const timeInput = document.getElementById('spinTime').value;
+            let time = parseInt(timeInput) || 10;
+            if (time < 5) time = 5;
+            if (time > 20) time = 20;
+
+            const currentBaseRotation = globalScores.currentRotationProgress || 0;
+            const randomDeg = Math.floor(Math.random() * 360);
+            const targetRotation = currentBaseRotation + 1800 + randomDeg;
+
+            globalScores.currentRotationProgress = targetRotation;
+
+            sendEvent('spin', {
+                duration: time,
+                targetRotation: targetRotation,
+                startTime: Date.now()
+            });
+        }
+
+        function resetWheelRotation() {
+            currentRotation = 0;
+            sendEvent('reset_rotation');
+        }
+
+        function setPointer(color, status) {
+            sendEvent('pointer_status', { color: color, status: status });
+        }
+
+        // Cải tiến hàm toggleItem: Tự động gom Tên + Tọa độ đang chọn trong select để đồng bộ ra Client
+        function toggleItem(baseName, show, btnEl) {
+            const cardEl = btnEl.closest('.item-card');
+            const selectEl = cardEl.querySelector('.coord-select');
+            const currentCoord = selectEl.value;
+            
+            // Khôi phục định dạng chuỗi ban đầu để client nhận diện: "Tên Ô (Tọa độ°)"
+            const fullName = `${baseName} (${currentCoord}°)`;
+
+            sendEvent('toggle_item', { name: fullName, show: show });
+            
+            if (show) {
+                cardEl.querySelector('.btn-on').style.background = 'green';
+                cardEl.querySelector('.btn-off').style.background = '#333';
+            } else {
+                cardEl.querySelector('.btn-on').style.background = '#333';
+                cardEl.querySelector('.btn-off').style.background = '#ff00ff';
+            }
+        }
+
+        function zoomPointer(dir) {
+            sendEvent('zoom_pointer', { dir: dir });
+        }
+
+        function showValue() { sendEvent('show_value'); }
+        function hideValue() { sendEvent('hide_value'); }
+
+        function findHighestWedge() {
+            let initialDeg = currentRotation;
+            let bestDeg = initialDeg;
+            let maxVal = -1;
+            for (let d = 0; d < 360; d += 0.5) {
+                let testRot = initialDeg + d;
+                let norm = (testRot % 360 + 360) % 360;
+                let targetWheelAngle = (0 - norm + 360) % 360;
+                let wedgeIdx = Math.floor(targetWheelAngle / 15) % 24;
+                let val = specialWedges[wedgeIdx] || 0;
+                if (val > maxVal) { maxVal = val; bestDeg = testRot; }
+            }
+            currentRotation = bestDeg;
+            const startTime = Date.now();
+            sendEvent('find_highest', { startTime: startTime, targetRotation: currentRotation });
+        }
+
+        // Render giao diện mới: Gom nhóm các tọa độ trùng vào 1 ô quản lý duy nhất
+        function renderControls() {
+            const container = document.getElementById('itemsContainer');
+            container.innerHTML = '';
+            
+            groupedItems.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                
+                // Khởi tạo danh sách các thẻ <option> cho tọa độ
+                let optionsHTML = '';
+                item.coords.forEach(coord => {
+                    optionsHTML += `<option value="${coord}">${coord}°</option>`;
+                });
+
+                card.innerHTML = `
+                    <div class="item-card-title">${item.name}</div>
+                    <div class="item-card-controls">
+                        <select class="coord-select" id="select-coord-${index}">
+                            ${optionsHTML}
+                        </select>
+                        <div class="flex-row" style="gap: 5px;">
+                            <button class="btn-on" onclick="toggleItem('${item.name}', true, this)" style="background:#333; padding:6px 12px; font-size:12px;">Hiện</button>
+                            <button class="btn-off" onclick="toggleItem('${item.name}', false, this)" style="background:#ff00ff; padding:6px 12px; font-size:12px;">Ẩn</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function initPlayerCards() {
+            playerColors.forEach(color => {
+                const row = document.getElementById(`cards-row-${color}`);
+                row.innerHTML = '';
+                playerCardLabels.forEach((lbl, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-card-toggle';
+                    btn.id = `btn-card-${color}-${idx}`;
+                    btn.innerText = lbl;
+                    btn.onclick = () => togglePlayerCardState(color, idx);
+                    row.appendChild(btn);
+                });
+            });
+        }
+
+        function togglePlayerCardState(color, cardIdx) {
+            globalScores[color].cards[cardIdx] = !globalScores[color].cards[cardIdx];
+            const btn = document.getElementById(`btn-card-${color}-${cardIdx}`);
+            if (globalScores[color].cards[cardIdx]) {
+                btn.classList.add('active-status');
+            } else {
+                btn.classList.remove('active-status');
+            }
+            sendEvent('toggle_player_card', { color: color, cardIdx: cardIdx, isActive: globalScores[color].cards[cardIdx] });
+        }
+
+        function formatNumberInput(input) {
+            let value = input.value.replace(/\D/g, "");
+            if (value) {
+                input.value = parseInt(value).toLocaleString('vi-VN');
+            }
+        }
+
+        function parseFormattedNumber(str) {
+            if (!str) return 0;
+            return parseInt(str.replace(/\./g, '')) || 0;
+        }
+
+        function modifyScore(player, type, action) {
+            const input = document.getElementById(`score-input-${player}`);
+            const value = parseFormattedNumber(input.value);
+            if (action === 'add') {
+                globalScores[player][type] += value;
+            } else if (action === 'sub') {
+                globalScores[player][type] -= value;
+            }
+            input.value = '';
+            syncScores();
+        }
+
+        function resetAllScores(type) {
+            playerColors.forEach(p => globalScores[p][type] = 0);
+            syncScores();
+        }
+
+        function syncScores() {
+            sendEvent('sync_scores', globalScores);
+            updateControllerScoreUI();
+        }
+
+        function updateControllerScoreUI() {
+            playerColors.forEach(p => {
+                document.getElementById(`ctrl-${p}-round-box`).innerText = `Điểm Vòng: ${globalScores[p].round.toLocaleString('vi-VN')}`;
+                document.getElementById(`ctrl-${p}-total-box`).innerText = `Điểm Tổng: ${globalScores[p].total.toLocaleString('vi-VN')}`;
+            });
+        }
+
+        channel.on('broadcast', { event: 'sync_scores' }, function (payload) {
+            globalScores = payload.payload;
+            updateControllerScoreUI();
+            playerColors.forEach(color => {
+                playerCardLabels.forEach((_, idx) => {
+                    const btn = document.getElementById(`btn-card-${color}-${idx}`);
+                    if (btn) {
+                        if (globalScores[color].cards[idx]) btn.classList.add('active-status');
+                        else btn.classList.remove('active-status');
+                    }
+                });
+            });
+        });
+
+        channel.on('broadcast', { event: 'request_sync' }, function () {
+            sendEvent('sync_scores', globalScores);
+            sendEvent('shuffle_special', { wedges: specialWedges });
+        });
+
+        function shuffleSpecialWheel() {
+            const pool = [
+                5000, 5000, 5000, 5000,
+                5000, 10000, 10000, 10000, 10000, 10000,
+                15000, 15000, 15000, 15000, 15000, 20000,
+                20000, 20000, 20000, 25000,
+                25000, 25000,
+                25000, 30000
+            ];
+            specialWedges = [];
+            while (pool.length > 0) {
+                const idx = Math.floor(Math.random() * pool.length);
+                specialWedges.push(pool.splice(idx, 1)[0]);
+            }
+            sendEvent('shuffle_special', { wedges: specialWedges });
+            renderSpecialGrid(specialWedges);
+        }
+
+        function renderSpecialGrid(wedges) {
+            const container = document.getElementById('specialGridContainer');
+            container.innerHTML = '';
+            wedges.forEach((val, index) => {
+                const cell = document.createElement('div');
+                cell.className = 'wedge-cell';
+                cell.innerText = `Ô ${index + 1}\n${val.toLocaleString('vi-VN')} đ`;
+                cell.style.color = 'white';
+                cell.style.fontWeight = 'bold';
+                if (val >= 30000) cell.style.backgroundColor = 'purple';
+                else if (val >= 25000) cell.style.backgroundColor = '#ff00ff';
+                else if (val >= 15000) cell.style.backgroundColor = 'red';
+                else cell.style.backgroundColor = 'red';
+                container.appendChild(cell);
+            });
+        }
+
+        shuffleSpecialWheel();
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.keyCode === 123) e.preventDefault();
+            if ((e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || (e.ctrlKey && e.keyCode === 85)) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+
+</html>
