@@ -4,8 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controller</title>
+    <title>Bảng Điều Khiển - Chiếc Nón Kỳ Diệu</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./sync-bridge.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -64,16 +65,17 @@
 
         button:hover {
             background: orange !important;
-            color: #fff !important;
+            color: #000 !important;
         }
 
         button.btn-off {
-            background: #ff00ff;
+            background: #ff00ff !important;
+            color: #000 !important;
         }
 
         button.btn-off:hover {
             background: orange !important;
-            color: #fff !important;
+            color: #000 !important;
         }
 
         input[type="number"],
@@ -149,6 +151,7 @@
 
         .block-yellow {
             border-color: yellow;
+            background: black;
         }
 
         .block-blue {
@@ -182,6 +185,24 @@
             color: #fff !important;
         }
 
+        /* Room Management Styling */
+        .room-management-box {
+            background: #1e1e24;
+            color: #ffffff;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            border: 2px solid #3388ff;
+        }
+
+        .room-management-box button {
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
         /* Responsive cho grid điều khiển ô */
         @media (max-width: 1024px) {
             .grid-4 { grid-template-columns: repeat(2, 1fr); }
@@ -193,6 +214,27 @@
 </head>
 
 <body>
+
+    <div class="room-management-box">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 14px; font-weight: bold; color: #aaa; text-transform: uppercase;">MÃ PHÒNG CHƠI:</span>
+                <span id="currentRoomDisplay" style="font-size: 24px; font-weight: bold; color: #ffff00; letter-spacing: 2px;">123456</span>
+                <button onclick="createNewRoom()" style="background: #008000; color: #fff; font-weight: bold; padding: 8px 16px; font-size: 14px;">+ Tạo Phòng Mới (6 Số)</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="text" id="inputRoomId" placeholder="Nhập 6 số" maxlength="6" style="width: 110px; padding: 7px 10px; font-size: 14px; text-align: center; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;">
+                <button onclick="joinRoomFromInput()" style="background: #0000ff; color: #fff; font-weight: bold; padding: 8px 16px; font-size: 14px;">Vào Phòng</button>
+            </div>
+        </div>
+        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #444; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 13px;">
+            <span style="color: #bbb; font-weight: bold;">LINK MÀN HÌNH CHƠI:</span>
+            <button onclick="copyLink('wheel')" style="background: #ffff00; color: #000; font-weight: bold; padding: 6px 12px; font-size: 12px;">📋 Copy Link Wheel.html</button>
+            <button onclick="openLink('wheel')" style="background: #ff0000; color: #fff; font-weight: bold; padding: 6px 12px; font-size: 12px;">🔗 Mở Wheel.html</button>
+            <button onclick="copyLink('subwheel')" style="background: #ff00ff; color: #000; font-weight: bold; padding: 6px 12px; font-size: 12px;">📋 Copy Link Sub_Wheel.html</button>
+            <button onclick="openLink('subwheel')" style="background: #800080; color: #fff; font-weight: bold; padding: 6px 12px; font-size: 12px;">🔗 Mở Sub_Wheel.html</button>
+        </div>
+    </div>
 
     <div class="section">
         <h2>Điều khiển Nón</h2>
@@ -319,15 +361,73 @@
             <button onclick="resetAllScores('round')"
                 style="background: purple; font-size: 16px; padding: 12px 25px;">Reset điểm vòng</button>
             <button onclick="resetAllScores('total')"
-                style="background: #ff00ff; font-size: 16px; padding: 12px 25px;">Reset điểm tổng</button>
+                style="background: #ff00ff; color: #000 !important; font-size: 16px; padding: 12px 25px;">Reset điểm tổng</button>
         </div>
     </div>
 
     <script>
+        function getRoomId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let room = urlParams.get('roomid');
+            if (!room) {
+                room = localStorage.getItem('current_room_id') || '123456';
+            }
+            return room;
+        }
+
+        let currentRoomId = getRoomId();
+
+        function updateRoomUI() {
+            const display = document.getElementById('currentRoomDisplay');
+            if (display) display.innerText = currentRoomId;
+        }
+
+        function createNewRoom() {
+            const newRoom = Math.floor(100000 + Math.random() * 900000).toString();
+            switchRoom(newRoom);
+        }
+
+        function joinRoomFromInput() {
+            const val = document.getElementById('inputRoomId').value.trim();
+            if (/^\d{6}$/.test(val)) {
+                switchRoom(val);
+            } else {
+                alert('Vui lòng nhập đúng mã phòng gồm 6 chữ số!');
+            }
+        }
+
+        function switchRoom(roomId) {
+            localStorage.setItem('current_room_id', roomId);
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?roomid=' + roomId;
+            window.location.href = newUrl;
+        }
+
+        function copyLink(type) {
+            const file = type === 'wheel' ? 'Wheel.html' : 'Sub_Wheel.html';
+            const link = window.location.protocol + "//" + window.location.host + "/" + file + '?roomid=' + currentRoomId;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(link).then(() => {
+                    alert('Đã sao chép link ' + file + ' của phòng ' + currentRoomId + ' vào bộ nhớ tạm!');
+                }).catch(() => {
+                    prompt('Copy link dưới đây:', link);
+                });
+            } else {
+                prompt('Copy link dưới đây:', link);
+            }
+        }
+
+        function openLink(type) {
+            const file = type === 'wheel' ? 'Wheel.html' : 'Sub_Wheel.html';
+            const link = window.location.protocol + "//" + window.location.host + "/" + file + '?roomid=' + currentRoomId;
+            window.open(link, '_blank');
+        }
+
+        updateRoomUI();
+
         var supabaseUrl = 'https://vjwwbzjzcbtkksehwfll.supabase.co';
         var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqd3diemp6Y2J0a2tzZWh3ZmxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NDIyOTYsImV4cCI6MjA5NTUxODI5Nn0.Zcn4hvlLtRirM-SPGrFvu3ivu8RYF9WngvbxCMCGfh4';
         var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-        const channel = supabase.channel('wheel_room');
+        const channel = supabase.channel('wheel_room_' + currentRoomId);
 
         const playerCardLabels = ["Thẻ Thêm Lượt", "Thẻ Cơ Hội", "Thẻ Kháng Mất Điểm", "Ô Bí Mật"];
         const playerColors = ['red', 'yellow', 'blue'];
@@ -373,7 +473,15 @@
         });
 
         function sendEvent(event, payload = {}) {
-            channel.send({ type: 'broadcast', event: event, payload: payload });
+            if (!payload._msgId) {
+                payload._msgId = Math.random().toString(36).substring(2, 11) + Date.now();
+            }
+            if (channel && typeof channel.send === 'function') {
+                channel.send({ type: 'broadcast', event: event, payload: payload });
+            }
+            if (window.BridgeSync) {
+                window.BridgeSync.send(event, payload);
+            }
         }
 
         function toggleWheel(type, show) {
@@ -394,14 +502,16 @@
 
             sendEvent('spin', {
                 duration: time,
+                startRotation: currentBaseRotation,
                 targetRotation: targetRotation,
                 startTime: Date.now()
             });
         }
 
         function resetWheelRotation() {
-            currentRotation = 0;
+            globalScores.currentRotationProgress = 0;
             sendEvent('reset_rotation');
+            syncScores();
         }
 
         function setPointer(color, status) {
@@ -436,7 +546,7 @@
         function hideValue() { sendEvent('hide_value'); }
 
         function findHighestWedge() {
-            let initialDeg = currentRotation;
+            let initialDeg = globalScores.currentRotationProgress || 0;
             let bestDeg = initialDeg;
             let maxVal = -1;
             for (let d = 0; d < 360; d += 0.5) {
@@ -447,9 +557,10 @@
                 let val = specialWedges[wedgeIdx] || 0;
                 if (val > maxVal) { maxVal = val; bestDeg = testRot; }
             }
-            currentRotation = bestDeg;
+            const startRot = globalScores.currentRotationProgress || 0;
+            globalScores.currentRotationProgress = bestDeg;
             const startTime = Date.now();
-            sendEvent('find_highest', { startTime: startTime, targetRotation: currentRotation });
+            sendEvent('find_highest', { startTime: startTime, startRotation: startRot, targetRotation: bestDeg });
         }
 
         // Render giao diện mới: Gom nhóm các tọa độ trùng vào 1 ô quản lý duy nhất
@@ -475,7 +586,7 @@
                         </select>
                         <div class="flex-row" style="gap: 5px;">
                             <button class="btn-on" onclick="toggleItem('${item.name}', true, this)" style="background:#333; padding:6px 12px; font-size:12px;">Hiện</button>
-                            <button class="btn-off" onclick="toggleItem('${item.name}', false, this)" style="background:#ff00ff; padding:6px 12px; font-size:12px;">Ẩn</button>
+                            <button class="btn-off" onclick="toggleItem('${item.name}', false, this)" style="background:#ff00ff; color:#000; padding:6px 12px; font-size:12px;">Ẩn</button>
                         </div>
                     </div>
                 `;
@@ -550,24 +661,55 @@
             });
         }
 
-        channel.on('broadcast', { event: 'sync_scores' }, function (payload) {
-            globalScores = payload.payload;
+        function handleSyncScores(payloadData) {
+            globalScores = payloadData;
             updateControllerScoreUI();
             playerColors.forEach(color => {
                 playerCardLabels.forEach((_, idx) => {
                     const btn = document.getElementById(`btn-card-${color}-${idx}`);
                     if (btn) {
-                        if (globalScores[color].cards[idx]) btn.classList.add('active-status');
+                        if (globalScores[color] && globalScores[color].cards && globalScores[color].cards[idx]) btn.classList.add('active-status');
                         else btn.classList.remove('active-status');
                     }
                 });
             });
+        }
+
+        function executeFullSync(state) {
+            if (!state) return;
+            if (state.scores) {
+                handleSyncScores(state.scores);
+            }
+            if (state.currentRotation !== undefined) {
+                globalScores.currentRotationProgress = state.currentRotation;
+            }
+            if (state.specialWedges && state.specialWedges.length > 0) {
+                specialWedges = state.specialWedges;
+                renderSpecialGrid(specialWedges);
+            }
+        }
+
+        channel.on('broadcast', { event: 'sync_scores' }, function (payload) {
+            handleSyncScores(payload.payload);
+        });
+
+        channel.on('broadcast', { event: 'full_sync_state' }, function (payload) {
+            executeFullSync(payload.payload);
         });
 
         channel.on('broadcast', { event: 'request_sync' }, function () {
             sendEvent('sync_scores', globalScores);
             sendEvent('shuffle_special', { wedges: specialWedges });
         });
+
+        if (window.BridgeSync) {
+            window.BridgeSync.on('sync_scores', handleSyncScores);
+            window.BridgeSync.on('full_sync_state', executeFullSync);
+            window.BridgeSync.on('request_sync', function() {
+                sendEvent('sync_scores', globalScores);
+                sendEvent('shuffle_special', { wedges: specialWedges });
+            });
+        }
 
         function shuffleSpecialWheel() {
             const pool = [
@@ -594,12 +736,17 @@
                 const cell = document.createElement('div');
                 cell.className = 'wedge-cell';
                 cell.innerText = `Ô ${index + 1}\n${val.toLocaleString('vi-VN')} đ`;
-                cell.style.color = 'white';
                 cell.style.fontWeight = 'bold';
-                if (val >= 30000) cell.style.backgroundColor = 'purple';
-                else if (val >= 25000) cell.style.backgroundColor = '#ff00ff';
-                else if (val >= 15000) cell.style.backgroundColor = 'red';
-                else cell.style.backgroundColor = 'red';
+                if (val >= 30000) {
+                    cell.style.backgroundColor = 'purple';
+                    cell.style.color = 'white';
+                } else if (val >= 25000) {
+                    cell.style.backgroundColor = '#ff00ff';
+                    cell.style.color = 'black';
+                } else {
+                    cell.style.backgroundColor = 'red';
+                    cell.style.color = 'white';
+                }
                 container.appendChild(cell);
             });
         }

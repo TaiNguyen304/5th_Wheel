@@ -4,8 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wheel</title>
+    <title>Màn Hình Phụ - Chiếc Nón Kỳ Diệu</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./sync-bridge.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -58,6 +59,9 @@
             display: block;
             background-image: url('./Nón.png');
             position: relative;
+            will-change: transform;
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
         }
 
         #specialValuePopup {
@@ -176,7 +180,7 @@
 
         .pointer-body {
             position: absolute;
-            top: -57.5px;
+            top: -16px;
             left: 50%;
             transform: translateX(-50%);
             filter: drop-shadow(0px 3px 5px rgba(0, 0, 0, 0.4));
@@ -187,15 +191,15 @@
         }
 
         #pointer-red {
-            --p-color: transparent;
+            --p-color: #ffffff;
         }
 
         #pointer-yellow {
-            --p-color: transparent;
+            --p-color: #ffffff;
         }
 
         #pointer-blue {
-            --p-color: transparent;
+            --p-color: #ffffff;
         }
     </style>
 </head>
@@ -211,7 +215,7 @@
             <div id="specialValuePopup">0 điểm</div>
             <div class="pointer-wrapper wrapper-red">
                 <div class="pointer-body" id="pointer-red">
-                    <svg width="46" height="60" viewBox="0 0 46 60">
+                    <svg width="22" height="28" viewBox="0 0 46 60">
                         <path d="M23,60 C9,38 0,28 0,18 A23,18 0 0,1 46,18 C46,28 37,38 23,60 Z" fill="var(--p-color)"
                             stroke="white" stroke-width="2" stroke-linejoin="round" />
                     </svg>
@@ -219,7 +223,7 @@
             </div>
             <div class="pointer-wrapper wrapper-yellow">
                 <div class="pointer-body" id="pointer-yellow">
-                    <svg width="46" height="60" viewBox="0 0 46 60">
+                    <svg width="22" height="28" viewBox="0 0 46 60">
                         <path d="M23,60 C9,38 0,28 0,18 A23,18 0 0,1 46,18 C46,28 37,38 23,60 Z" fill="var(--p-color)"
                             stroke="white" stroke-width="2" stroke-linejoin="round" />
                     </svg>
@@ -227,7 +231,7 @@
             </div>
             <div class="pointer-wrapper wrapper-blue">
                 <div class="pointer-body" id="pointer-blue">
-                    <svg width="46" height="60" viewBox="0 0 46 60">
+                    <svg width="22" height="28" viewBox="0 0 46 60">
                         <path d="M23,60 C9,38 0,28 0,18 A23,18 0 0,1 46,18 C46,28 37,38 23,60 Z" fill="var(--p-color)"
                             stroke="white" stroke-width="2" stroke-linejoin="round" />
                     </svg>
@@ -236,7 +240,24 @@
         </div>
     </div>
 
+    <div style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: #00ffcc; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-family: sans-serif; z-index: 1000; pointer-events: none;">Phòng: <span id="subwheelRoomBadge">123456</span></div>
+
     <script>
+        function getRoomId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let room = urlParams.get('roomid');
+            if (!room) {
+                room = (window.BridgeSync && window.BridgeSync.getRoomId()) || localStorage.getItem('current_room_id') || '123456';
+            }
+            return room;
+        }
+
+        const currentRoomId = getRoomId();
+        document.addEventListener('DOMContentLoaded', () => {
+            const badge = document.getElementById('subwheelRoomBadge');
+            if (badge) badge.innerText = currentRoomId;
+        });
+
         var supabaseUrl = 'https://vjwwbzjzcbtkksehwfll.supabase.co';
         var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqd3diemp6Y2J0a2tzZWh3ZmxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NDIyOTYsImV4cCI6MjA5NTUxODI5Nn0.Zcn4hvlLtRirM-SPGrFvu3ivu8RYF9WngvbxCMCGfh4';
         var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -323,7 +344,7 @@
 
         function updateWheelAnimation() {
             const now = Date.now();
-            const elapsed = now - spinStartTime;
+            const elapsed = Math.max(0, now - spinStartTime);
             const progress = Math.min(elapsed / spinDuration, 1);
 
             const easeProgress = easeOutCubic(progress);
@@ -334,8 +355,10 @@
             if (progress < 1) {
                 spinAnimationId = requestAnimationFrame(updateWheelAnimation);
             } else {
-                cancelAnimationFrame(spinAnimationId);
+                if (spinAnimationId) cancelAnimationFrame(spinAnimationId);
                 spinAnimationId = null;
+                currentRotation = spinTargetRotation;
+                wheelGraphic.style.transform = `rotate(${currentRotation}deg)`;
                 saveWheelState();
             }
         }
@@ -361,9 +384,9 @@
             const saved = localStorage.getItem('wheel_sub_state');
             if (!saved) return;
             const state = JSON.parse(saved);
-            currentRotation = state.currentRotation;
+            currentRotation = state.currentRotation || 0;
             isSpecialMode = state.isSpecialMode;
-            specialWedges = state.specialWedges;
+            specialWedges = state.specialWedges || [];
             wheelGraphic.style.transform = `rotate(${currentRotation}deg)`;
             wheelGraphic.style.display = state.wheelDisplay || 'block';
             wheelGraphic.style.backgroundImage = state.wheelBg || "url('./Nón.png')";
@@ -379,14 +402,21 @@
             }
         }
 
-        function executeSpin(duration, targetRotation, startTime) {
-            if (spinAnimationId) cancelAnimationFrame(spinAnimationId);
+        function executeSpin(duration, targetRotation, startTime, startRotation) {
+            if (spinAnimationId) {
+                cancelAnimationFrame(spinAnimationId);
+                spinAnimationId = null;
+            }
             specialValuePopup.style.display = 'none';
 
-            spinStartRotation = currentRotation;
+            if (startRotation !== undefined && startRotation !== null) {
+                spinStartRotation = startRotation;
+            } else {
+                spinStartRotation = currentRotation;
+            }
             spinTargetRotation = targetRotation;
-            spinStartTime = startTime;
-            spinDuration = duration * 1000;
+            spinStartTime = startTime || Date.now();
+            spinDuration = (duration || 10) * 1000;
 
             updateWheelAnimation();
         }
@@ -406,22 +436,14 @@
             saveWheelState();
         }
 
-        function executeFindHighest(startTime, idCounter) {
-            let initialDeg = currentRotation;
-            let bestDeg = initialDeg;
-            let maxVal = -1;
-            for (let d = 0; d < 360; d += 0.5) {
-                let testRot = initialDeg + d;
-                let norm = (testRot % 360 + 360) % 360;
-                let targetWheelAngle = (0 - norm + 360) % 360;
-                let wedgeIdx = Math.floor(targetWheelAngle / 15) % 24;
-                let val = specialWedges[wedgeIdx] || 0;
-                if (val > maxVal) { maxVal = val; bestDeg = testRot; }
+        function executeFindHighest(startTime, startRotation, targetRotation) {
+            if (spinAnimationId) {
+                cancelAnimationFrame(spinAnimationId);
+                spinAnimationId = null;
             }
-            if (spinAnimationId) cancelAnimationFrame(spinAnimationId);
-            spinStartRotation = currentRotation;
-            spinTargetRotation = bestDeg;
-            spinStartTime = Date.now();
+            spinStartRotation = (startRotation !== undefined && startRotation !== null) ? startRotation : currentRotation;
+            spinTargetRotation = targetRotation !== undefined ? targetRotation : currentRotation;
+            spinStartTime = startTime || Date.now();
             spinDuration = 1500;
 
             updateWheelAnimation();
@@ -429,16 +451,18 @@
         }
 
         function executeResetRotation() {
-            if (spinAnimationId) cancelAnimationFrame(spinAnimationId);
+            if (spinAnimationId) {
+                cancelAnimationFrame(spinAnimationId);
+                spinAnimationId = null;
+            }
             currentRotation = 0;
+            spinStartRotation = 0;
+            spinTargetRotation = 0;
             wheelGraphic.style.transform = 'rotate(0deg)';
             saveWheelState();
         }
 
-        const channel = supabase.channel('wheel_room').on('broadcast', { event: 'spin' }, function (payload) {
-            executeSpin(payload.payload.duration, payload.payload.targetRotation, payload.payload.startTime);
-        }).on('broadcast', { event: 'toggle_wheel' }, function (payload) {
-            const data = payload.payload;
+        function executeToggleWheel(data) {
             if (data.type === 'normal') {
                 wheelGraphic.style.backgroundImage = "url('./Nón.png')";
                 isSpecialMode = false;
@@ -447,42 +471,156 @@
                 isSpecialMode = true;
             }
             saveWheelState();
-        }).on('broadcast', { event: 'pointer_status' }, function (payload) {
-            const data = payload.payload;
+        }
+
+        function executePointerStatus(data) {
             const colorMap = {
-                red: { on: '#ff0000', off: 'transparent' },
-                yellow: { on: '#ffff00', off: 'transparent' },
-                blue: { on: '#0000ff', off: 'transparent' }
+                red: { on: '#ff0000', off: '#ffffff' },
+                yellow: { on: '#ffff00', off: '#ffffff' },
+                blue: { on: '#0000ff', off: '#ffffff' }
             };
             const el = document.getElementById('pointer-' + data.color);
             if (el) el.style.setProperty('--p-color', colorMap[data.color][data.status]);
             saveWheelState();
-        }).on('broadcast', { event: 'zoom_pointer' }, function (payload) {
-            if (payload.payload.dir === 'in') wheelArea.classList.add('zoomed');
+        }
+
+        function executeZoomPointer(data) {
+            if (data.dir === 'in') wheelArea.classList.add('zoomed');
             else wheelArea.classList.remove('zoomed');
             saveWheelState();
-        }).on('broadcast', { event: 'toggle_item' }, function (payload) {
-            const data = payload.payload;
+        }
+
+        function executeToggleItem(data) {
             const el = document.getElementById('render-item-' + data.name.replace(/[^a-zA-Z0-9]/g, '_'));
             if (el) el.style.display = data.show ? 'block' : 'none';
             saveWheelState();
-        }).on('broadcast', { event: 'shuffle_special' }, function (payload) {
-            specialWedges = payload.payload.wedges;
+        }
+
+        function executeShuffleSpecial(data) {
+            specialWedges = data.wedges || [];
             specialValuePopup.style.display = 'none';
             saveWheelState();
+        }
+
+        function executeFullSync(state) {
+            if (!state) return;
+
+            if (state.wheelType === 'normal') {
+                wheelGraphic.style.backgroundImage = "url('./Nón.png')";
+                isSpecialMode = false;
+            } else if (state.wheelType === 'special') {
+                wheelGraphic.style.backgroundImage = "url('./Nón Đặc Biệt.png')";
+                isSpecialMode = true;
+            }
+            if (state.wheelVisible !== undefined) {
+                wheelGraphic.style.display = state.wheelVisible ? 'block' : 'none';
+            }
+
+            if (state.pointers) {
+                if (state.pointers.red) executePointerStatus({ color: 'red', status: state.pointers.red });
+                if (state.pointers.yellow) executePointerStatus({ color: 'yellow', status: state.pointers.yellow });
+                if (state.pointers.blue) executePointerStatus({ color: 'blue', status: state.pointers.blue });
+                if (state.pointers.zoom) executeZoomPointer({ dir: state.pointers.zoom });
+            }
+
+            if (state.items) {
+                Object.keys(state.items).forEach(itemName => {
+                    executeToggleItem({ name: itemName, show: state.items[itemName] });
+                });
+            }
+
+            if (state.specialWedges && state.specialWedges.length > 0) {
+                specialWedges = state.specialWedges;
+            }
+            if (state.specialValueVisible) {
+                executeShowValue();
+            } else {
+                executeHideValue();
+            }
+
+            if (state.isSpinning && state.spinState && state.spinState.startTime) {
+                const now = Date.now();
+                const spinEndTime = state.spinState.startTime + ((state.spinState.duration || 10) * 1000);
+                if (now < spinEndTime) {
+                    executeSpin(
+                        state.spinState.duration,
+                        state.spinState.targetRotation,
+                        state.spinState.startTime,
+                        state.spinState.startRotation
+                    );
+                } else {
+                    if (spinAnimationId) { cancelAnimationFrame(spinAnimationId); spinAnimationId = null; }
+                    currentRotation = state.spinState.targetRotation;
+                    wheelGraphic.style.transform = `rotate(${currentRotation}deg)`;
+                }
+            } else if (state.currentRotation !== undefined) {
+                if (spinAnimationId) { cancelAnimationFrame(spinAnimationId); spinAnimationId = null; }
+                currentRotation = state.currentRotation;
+                wheelGraphic.style.transform = `rotate(${currentRotation}deg)`;
+            }
+
+            saveWheelState();
+        }
+
+        function handleChannelPayload(event, payloadData) {
+            if (payloadData && payloadData._msgId && window.BridgeSync && window.BridgeSync.isProcessed(payloadData._msgId)) {
+                return;
+            }
+            if (event === 'spin') executeSpin(payloadData.duration, payloadData.targetRotation, payloadData.startTime, payloadData.startRotation);
+            else if (event === 'toggle_wheel') executeToggleWheel(payloadData);
+            else if (event === 'pointer_status') executePointerStatus(payloadData);
+            else if (event === 'zoom_pointer') executeZoomPointer(payloadData);
+            else if (event === 'toggle_item') executeToggleItem(payloadData);
+            else if (event === 'shuffle_special') executeShuffleSpecial(payloadData);
+            else if (event === 'show_value') executeShowValue();
+            else if (event === 'hide_value') executeHideValue();
+            else if (event === 'find_highest') executeFindHighest(payloadData.startTime, payloadData.startRotation, payloadData.targetRotation);
+            else if (event === 'reset_rotation') executeResetRotation();
+            else if (event === 'full_sync_state') executeFullSync(payloadData);
+        }
+
+        const channel = supabase.channel('wheel_room_' + currentRoomId).on('broadcast', { event: 'spin' }, function (payload) {
+            handleChannelPayload('spin', payload.payload);
+        }).on('broadcast', { event: 'toggle_wheel' }, function (payload) {
+            handleChannelPayload('toggle_wheel', payload.payload);
+        }).on('broadcast', { event: 'pointer_status' }, function (payload) {
+            handleChannelPayload('pointer_status', payload.payload);
+        }).on('broadcast', { event: 'zoom_pointer' }, function (payload) {
+            handleChannelPayload('zoom_pointer', payload.payload);
+        }).on('broadcast', { event: 'toggle_item' }, function (payload) {
+            handleChannelPayload('toggle_item', payload.payload);
+        }).on('broadcast', { event: 'shuffle_special' }, function (payload) {
+            handleChannelPayload('shuffle_special', payload.payload);
         }).on('broadcast', { event: 'show_value' }, function () {
-            executeShowValue();
+            handleChannelPayload('show_value', {});
         }).on('broadcast', { event: 'hide_value' }, function () {
-            executeHideValue();
+            handleChannelPayload('hide_value', {});
         }).on('broadcast', { event: 'find_highest' }, function (payload) {
-            executeFindHighest(payload.payload.startTime, payload.payload.highestSearchCounter);
+            handleChannelPayload('find_highest', payload.payload);
         }).on('broadcast', { event: 'reset_rotation' }, function () {
-            executeResetRotation();
+            handleChannelPayload('reset_rotation', {});
+        }).on('broadcast', { event: 'full_sync_state' }, function (payload) {
+            handleChannelPayload('full_sync_state', payload.payload);
         }).subscribe((status) => {
             if (status === 'SUBSCRIBED') {
                 channel.send({ event: 'request_sync', type: 'broadcast', payload: {} });
             }
         });
+
+        if (window.BridgeSync) {
+            window.BridgeSync.on('spin', p => executeSpin(p.duration, p.targetRotation, p.startTime, p.startRotation));
+            window.BridgeSync.on('toggle_wheel', p => executeToggleWheel(p));
+            window.BridgeSync.on('pointer_status', p => executePointerStatus(p));
+            window.BridgeSync.on('zoom_pointer', p => executeZoomPointer(p));
+            window.BridgeSync.on('toggle_item', p => executeToggleItem(p));
+            window.BridgeSync.on('shuffle_special', p => executeShuffleSpecial(p));
+            window.BridgeSync.on('show_value', () => executeShowValue());
+            window.BridgeSync.on('hide_value', () => executeHideValue());
+            window.BridgeSync.on('find_highest', p => executeFindHighest(p.startTime, p.startRotation, p.targetRotation));
+            window.BridgeSync.on('reset_rotation', () => executeResetRotation());
+            window.BridgeSync.on('full_sync_state', p => executeFullSync(p));
+            window.BridgeSync.send('request_sync', {});
+        }
 
         channel.on('broadcast', { event: 'request_sync' }, function () { saveWheelState(); });
         window.addEventListener('load', loadWheelState);
