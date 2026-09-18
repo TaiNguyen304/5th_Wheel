@@ -496,7 +496,9 @@
 
             const currentBaseRotation = globalScores.currentRotationProgress || 0;
             const randomDeg = Math.floor(Math.random() * 360);
-            const targetRotation = currentBaseRotation + 1800 + randomDeg;
+            // Số vòng quay tỉ lệ với thời gian: 10s = 35 vòng = 12.600 độ (quay nhanh, mạnh, mượt)
+            const totalRoundsDeg = (time * 3 + 5) * 360;
+            const targetRotation = currentBaseRotation + totalRoundsDeg + randomDeg;
 
             globalScores.currentRotationProgress = targetRotation;
 

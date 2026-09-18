@@ -415,7 +415,8 @@
                 spinStartRotation = currentRotation;
             }
             spinTargetRotation = targetRotation;
-            spinStartTime = startTime || Date.now();
+            // Đặt thời điểm bắt đầu theo thời gian máy nhận để chạy trọn vẹn 100% hiệu ứng từ nhanh tới chậm
+            spinStartTime = Date.now();
             spinDuration = (duration || 10) * 1000;
 
             updateWheelAnimation();
