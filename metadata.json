@@ -1,8 +1,0 @@
-{
-  "name": "5th Wheel (Nón Kỳ Diệu)",
-  "description": "Ứng dụng trò chơi Chiếc Nón Kỳ Diệu gồm Màn hình Vòng Quay, Màn hình Phụ và Bảng Điều Khiển cho MC/Quản trò.",
-  "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
-}
