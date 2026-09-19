@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bảng Điều Khiển - Chiếc Nón Kỳ Diệu</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./sync-bridge.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -479,9 +478,6 @@
             if (channel && typeof channel.send === 'function') {
                 channel.send({ type: 'broadcast', event: event, payload: payload });
             }
-            if (window.BridgeSync) {
-                window.BridgeSync.send(event, payload);
-            }
         }
 
         function toggleWheel(type, show) {
@@ -703,15 +699,6 @@
             sendEvent('sync_scores', globalScores);
             sendEvent('shuffle_special', { wedges: specialWedges });
         });
-
-        if (window.BridgeSync) {
-            window.BridgeSync.on('sync_scores', handleSyncScores);
-            window.BridgeSync.on('full_sync_state', executeFullSync);
-            window.BridgeSync.on('request_sync', function() {
-                sendEvent('sync_scores', globalScores);
-                sendEvent('shuffle_special', { wedges: specialWedges });
-            });
-        }
 
         function shuffleSpecialWheel() {
             const pool = [

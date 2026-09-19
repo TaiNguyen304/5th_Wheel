@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Màn Hình Vòng Quay - Chiếc Nón Kỳ Diệu</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./sync-bridge.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -360,7 +359,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             let room = urlParams.get('roomid');
             if (!room) {
-                room = (window.BridgeSync && window.BridgeSync.getRoomId()) || localStorage.getItem('current_room_id') || '123456';
+                room = localStorage.getItem('current_room_id') || '123456';
             }
             return room;
         }
@@ -682,25 +681,18 @@
                 executeHideValue();
             }
 
-            if (state.isSpinning && state.spinState && state.spinState.startTime) {
-                const now = Date.now();
-                const spinEndTime = state.spinState.startTime + ((state.spinState.duration || 10) * 1000);
-                if (now < spinEndTime) {
+            if (!spinAnimationId) {
+                if (state.isSpinning && state.spinState) {
                     executeSpin(
                         state.spinState.duration,
                         state.spinState.targetRotation,
                         state.spinState.startTime,
                         state.spinState.startRotation
                     );
-                } else {
-                    if (spinAnimationId) { cancelAnimationFrame(spinAnimationId); spinAnimationId = null; }
-                    currentRotation = state.spinState.targetRotation;
+                } else if (state.currentRotation !== undefined) {
+                    currentRotation = state.currentRotation;
                     wheelGraphic.style.transform = `rotate(${currentRotation}deg)`;
                 }
-            } else if (state.currentRotation !== undefined) {
-                if (spinAnimationId) { cancelAnimationFrame(spinAnimationId); spinAnimationId = null; }
-                currentRotation = state.currentRotation;
-                wheelGraphic.style.transform = `rotate(${currentRotation}deg)`;
             }
 
             if (state.scores && typeof executeUpdateScores === 'function') {
@@ -760,23 +752,6 @@
                 channel.send({ event: 'request_sync', type: 'broadcast', payload: {} });
             }
         });
-
-        if (window.BridgeSync) {
-            window.BridgeSync.on('spin', p => executeSpin(p.duration, p.targetRotation, p.startTime, p.startRotation));
-            window.BridgeSync.on('toggle_wheel', p => executeToggleWheel(p));
-            window.BridgeSync.on('pointer_status', p => executePointerStatus(p));
-            window.BridgeSync.on('zoom_pointer', p => executeZoomPointer(p));
-            window.BridgeSync.on('toggle_item', p => executeToggleItem(p));
-            window.BridgeSync.on('shuffle_special', p => executeShuffleSpecial(p));
-            window.BridgeSync.on('show_value', () => executeShowValue());
-            window.BridgeSync.on('hide_value', () => executeHideValue());
-            window.BridgeSync.on('find_highest', p => executeFindHighest(p.startTime, p.startRotation, p.targetRotation));
-            window.BridgeSync.on('sync_scores', p => executeUpdateScores(p));
-            window.BridgeSync.on('toggle_player_card', p => executeUpdatePlayerCard(p.color, p.cardIdx, p.isActive));
-            window.BridgeSync.on('reset_rotation', () => executeResetRotation());
-            window.BridgeSync.on('full_sync_state', p => executeFullSync(p));
-            window.BridgeSync.send('request_sync', {});
-        }
 
         channel.on('broadcast', { event: 'request_sync' }, function () { saveWheelState(); });
         window.addEventListener('load', loadWheelState);
